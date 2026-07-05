@@ -86,6 +86,10 @@
           <button class="btn btn--secondary" id="edit-btn" type="button">수정</button>
           <button class="btn btn--danger-outline" id="delete-btn" type="button">삭제</button>
           <button class="btn btn--ghost" id="reset-btn" type="button">초기화</button>
+          <button class="btn btn--secondary" id="analyze-btn" type="button">
+            <span class="btn-spinner" id="analyze-spinner" hidden></span>
+            <span id="analyze-btn-label">AI 분석</span>
+          </button>
         </div>
       </section>
 
@@ -93,6 +97,17 @@
         <h3 class="card-title card-title--sm">오늘 작성한 내용 미리보기</h3>
         <div class="preview-body" id="preview-body">
           <p class="empty-state">아직 작성한 내용이 없습니다. 위 입력창에 오늘의 영어 일기를 적어보세요.</p>
+        </div>
+      </section>
+
+      <section class="card analysis-card" id="analysis-result-card" hidden>
+        <h3 class="card-title card-title--sm">AI 분석 결과</h3>
+        <div class="analysis-section">
+          <div class="analysis-section__row">
+            <span class="badge badge--cefr" id="analysis-cefr">-</span>
+            <span class="analysis-topic" id="analysis-topic"></span>
+          </div>
+          <p class="analysis-feedback" id="analysis-feedback"></p>
         </div>
       </section>
 
@@ -157,6 +172,7 @@
         <div class="stat-card"><span class="stat-card__label">총 문장 수</span><span class="stat-card__value" id="stat-sentences">0</span></div>
         <div class="stat-card"><span class="stat-card__label">평균 단어 수</span><span class="stat-card__value" id="stat-avg-words">0</span></div>
         <div class="stat-card"><span class="stat-card__label">평균 문장 수</span><span class="stat-card__value" id="stat-avg-sentences">0</span></div>
+        <div class="stat-card"><span class="stat-card__label">평균 CEFR</span><span class="stat-card__value" id="stat-avg-cefr">-</span></div>
       </section>
 
       <!-- 차트 영역 -->
@@ -234,6 +250,26 @@
           <button type="button" class="segmented__option" data-font-size="small">Small</button>
           <button type="button" class="segmented__option" data-font-size="medium">Medium</button>
           <button type="button" class="segmented__option" data-font-size="large">Large</button>
+        </div>
+
+        <p class="settings-label settings-label--spaced">AI 분석 설정</p>
+        <div class="settings-field">
+          <label for="ai-provider-select">Provider</label>
+          <select id="ai-provider-select"></select>
+        </div>
+        <div class="settings-field">
+          <label for="ai-model-select">Model</label>
+          <select id="ai-model-select"></select>
+        </div>
+        <div class="settings-field">
+          <label for="ai-api-key-input">Gemini API Key</label>
+          <div class="api-key-input-group">
+            <input type="password" id="ai-api-key-input" placeholder="API Key를 입력하세요" autocomplete="off" />
+            <button type="button" class="icon-btn" id="toggle-api-key-visibility" title="보기/숨기기">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <p class="settings-hint">API Key는 이 브라우저의 LocalStorage에만 저장되며, 외부로 전송되지 않습니다.</p>
         </div>
       </div>
       <div class="modal__footer">
