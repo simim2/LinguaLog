@@ -58,10 +58,10 @@
       <section class="card journal-card">
         <div class="journal-card__header">
           <div>
-            <h2 class="card-title">오늘의 영어 일기</h2>
-            <p class="card-subtitle">매일 짧게라도 영어로 적어보세요.</p>
+            <h2 class="card-title">새 영어 일기 쓰기</h2>
+            <p class="card-subtitle">언제든 새로운 일기를 작성하고 저장할 수 있어요.</p>
           </div>
-          <span class="badge badge--goal" id="goal-progress-label">0 / 50 words</span>
+          <span class="badge badge--goal" id="goal-progress-label">0 / 500 words</span>
         </div>
 
         <div class="goal-bar" aria-hidden="true">
@@ -80,12 +80,12 @@
           <span class="dot-sep">·</span>
           <span id="live-sentence-count">0 sentences</span>
         </div>
+        <p class="word-count-warning" id="word-count-warning" hidden>Recommended maximum: 500 words. AI analysis may be less reliable.</p>
 
         <div class="journal-card__actions">
           <button class="btn btn--primary" id="save-btn" type="button">저장</button>
-          <button class="btn btn--secondary" id="edit-btn" type="button">수정</button>
           <button class="btn btn--danger-outline" id="delete-btn" type="button">삭제</button>
-          <button class="btn btn--ghost" id="reset-btn" type="button">초기화</button>
+          <button class="btn btn--ghost" id="new-entry-btn" type="button">New Entry</button>
           <button class="btn btn--secondary" id="analyze-btn" type="button">
             <span class="btn-spinner" id="analyze-spinner" hidden></span>
             <span id="analyze-btn-label">AI 분석</span>
@@ -94,9 +94,9 @@
       </section>
 
       <section class="card preview-card">
-        <h3 class="card-title card-title--sm">오늘 작성한 내용 미리보기</h3>
+        <h3 class="card-title card-title--sm">미리보기</h3>
         <div class="preview-body" id="preview-body">
-          <p class="empty-state">아직 작성한 내용이 없습니다. 위 입력창에 오늘의 영어 일기를 적어보세요.</p>
+          <p class="empty-state">아직 작성한 내용이 없습니다. 위 입력창에 영어 일기를 적어보세요.</p>
         </div>
       </section>
 

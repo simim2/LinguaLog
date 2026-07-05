@@ -83,6 +83,52 @@ const Utils = (() => {
     return sorted;
   }
 
+  /**
+   * entry.createdAt(ISO datetime) 기준 정렬. Phase 3.5부터 하루에 여러 Entry가
+   * 존재할 수 있으므로, 날짜(day) 단위가 아니라 정확한 생성 시각까지 비교해야
+   * "같은 날 안에서도 최신 작성순"이 보장된다. ISO 8601 문자열은 사전식 비교가
+   * 곧 시간 순서와 같으므로 localeCompare로 충분하다.
+   * @param {Array<{createdAt: string}>} entries
+   * @param {'asc'|'desc'} order
+   * @returns {Array} 정렬된 새 배열
+   */
+  function sortByCreatedAt(entries, order = 'desc') {
+    const sorted = [...entries];
+    sorted.sort((a, b) => (order === 'desc' ? b.createdAt.localeCompare(a.createdAt) : a.createdAt.localeCompare(b.createdAt)));
+    return sorted;
+  }
+
+  /**
+   * Entry 본문에서 제목을 자동 생성한다 (사용자가 title을 입력할 필요 없음).
+   * 첫 문장(마침표/느낌표/물음표/줄바꿈 기준)을 추출한 뒤 CONFIG.TITLE_MAX_LENGTH를
+   * 넘으면 잘라서 말줄임표를 붙인다. 내용이 비어있으면 "Untitled"를 반환한다.
+   * @param {string} content
+   * @param {number} [maxLength]
+   * @returns {string}
+   */
+  function generateTitle(content, maxLength = CONFIG.TITLE_MAX_LENGTH) {
+    const trimmed = (content || '').trim();
+    if (!trimmed) return 'Untitled';
+
+    const firstLine = trimmed.split('\n')[0];
+    const match = firstLine.match(/^[^.!?]*[.!?]?/);
+    let title = (match ? match[0] : firstLine).trim() || trimmed;
+
+    if (title.length > maxLength) {
+      title = `${title.slice(0, maxLength).trim()}…`;
+    }
+    return title || 'Untitled';
+  }
+
+  /** ISO datetime 문자열 → "HH:MM" (24시간제). History에서 같은 날짜 안의 항목 구분용 */
+  function formatTime(isoString) {
+    const d = new Date(isoString);
+    if (Number.isNaN(d.getTime())) return '';
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${hh}:${mm}`;
+  }
+
   /** 평균 문장 길이(문장당 평균 단어 수) 계산 */
   function averageSentenceLength(text) {
     const words = countWords(text);
@@ -245,6 +291,9 @@ const Utils = (() => {
     countWords,
     countSentences,
     sortByDate,
+    sortByCreatedAt,
+    generateTitle,
+    formatTime,
     averageSentenceLength,
     escapeHtml,
     generateId,

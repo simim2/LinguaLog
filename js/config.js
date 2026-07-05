@@ -38,8 +38,12 @@ const CONFIG = Object.freeze({
     large: '18px',
   }),
 
-  // 일일 목표 단어 수 (Home 화면의 진행률 표시에 사용, Phase 2에서 연결)
-  DAILY_GOAL_WORDS: 50,
+  // Phase 3.5: 하루 목표가 아니라 "Entry 한 편당 권장 길이" 개념으로 변경.
+  // 이 값을 넘어도 입력은 막지 않고 안내 문구만 표시한다 (app.js 참조).
+  RECOMMENDED_MAX_WORDS: 500,
+
+  // Entry 제목 자동 생성 시 자를 최대 길이 (Utils.generateTitle에서 사용)
+  TITLE_MAX_LENGTH: 60,
 
   // ---------------------------------------------------------------------
   // AI 분석 관련 설정 - Phase 2.0에서 Gemini로 실제 연결됨

@@ -12,6 +12,10 @@
  * Phase 2.0: EntryStorage CRUD를 실제로 구현했습니다 (AI 분석 결과를
  * 저장할 대상이 필요하기 때문). AISettingsStorage도 이번에 추가되어
  * Gemini API Key/Provider/Model을 별도 키로 관리합니다.
+ * Phase 3.5: "하루 = Entry 1개" 가정을 제거했습니다. CRUD는 원래부터
+ * Entry ID 기준으로 동작해서 구조 변경은 없었고, date 기반 단일 조회
+ * (getByDate)만 배열을 반환하는 getAllByDate로 교체했습니다. title도
+ * 이제 content로부터 자동 생성됩니다.
  *
  * 데이터 모델(JournalEntry, JournalAnalysis 등)의 JSDoc typedef는
  * js/types.js에 있습니다. 이 파일은 저장/조회 로직만 담당합니다.
@@ -111,14 +115,20 @@ const EntryStorage = {
     return this.getAll().find((entry) => entry.id === id) || null;
   },
 
-  /** date(YYYY-MM-DD)로 단일 일기 조회 (하루 1개 기록 가정) */
-  getByDate(date) {
-    return this.getAll().find((entry) => entry.date === date) || null;
+  /**
+   * date(YYYY-MM-DD)에 해당하는 모든 Entry를 반환한다 (Phase 3.5부터 하루에
+   * 여러 개가 있을 수 있음). 정렬은 호출부에서 Utils.sortByCreatedAt으로 처리한다.
+   * @param {string} date
+   * @returns {JournalEntry[]}
+   */
+  getAllByDate(date) {
+    return this.getAll().filter((entry) => entry.date === date);
   },
 
   /**
-   * 새 일기 생성. wordCount/sentenceCount는 content로부터 자동 계산되며,
-   * analysis는 항상 null로 시작한다 (AI 분석은 저장 후 별도 요청).
+   * 새 일기 생성. wordCount/sentenceCount/title은 content로부터 자동
+   * 계산되며, analysis는 항상 null로 시작한다 (AI 분석은 저장 후 별도 요청).
+   * 같은 날짜에 이미 다른 Entry가 있어도 절대 덮어쓰지 않고 새로 추가된다.
    * @param {{ date: string, content: string }} entryData
    * @returns {JournalEntry}
    */
@@ -127,7 +137,7 @@ const EntryStorage = {
     const entry = {
       id: Utils.generateId(),
       date: entryData.date,
-      title: entryData.title || '',
+      title: Utils.generateTitle(entryData.content),
       content: entryData.content,
       wordCount: Utils.countWords(entryData.content),
       sentenceCount: Utils.countSentences(entryData.content),
@@ -144,9 +154,10 @@ const EntryStorage = {
   },
 
   /**
-   * 기존 일기 수정. content가 바뀌면 wordCount/sentenceCount를 다시 계산하고,
-   * 기존 analysis는 더 이상 최신 본문을 반영하지 못하므로 null로 초기화한다
-   * (재분석이 필요하다는 신호).
+   * 기존 일기 수정. content가 바뀌면 wordCount/sentenceCount/title을 다시
+   * 계산하고, 기존 analysis는 더 이상 최신 본문을 반영하지 못하므로 null로
+   * 초기화한다 (재분석이 필요하다는 신호). Entry ID로만 대상을 찾으므로
+   * 같은 날짜에 다른 Entry가 몇 개 있든 영향을 주지 않는다.
    * @param {string} id
    * @param {{ content?: string }} updates
    * @returns {JournalEntry|null}
@@ -162,6 +173,7 @@ const EntryStorage = {
     const updated = {
       ...existing,
       ...updates,
+      title: contentChanged ? Utils.generateTitle(updates.content) : existing.title,
       wordCount: contentChanged ? Utils.countWords(updates.content) : existing.wordCount,
       sentenceCount: contentChanged ? Utils.countSentences(updates.content) : existing.sentenceCount,
       analysis: contentChanged ? null : existing.analysis,
