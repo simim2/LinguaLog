@@ -7,9 +7,9 @@
  * 실제로 동작한다. 상세 패널에서 수정/삭제도 이 화면 안에서 바로 처리한다
  * (Home은 "오늘 일기"만 다루므로, 과거 기록 수정은 History에서 인라인으로 한다).
  *
- * Analysis 영역(renderAnalysisSection)은 CEFR/Topic/Feedback을 실제로
- * 표시하고, 향후 추가될 Grammar/Vocabulary/ConversationType은 Coming Soon
- * 자리로 미리 마련해두었다.
+ * Analysis 영역은 Utils.renderAnalysisDetails()를 통해 Home과 동일한
+ * 마크업을 공유한다 (CEFR/Topic/Feedback + Conversation Type/Keywords/
+ * Grammar/Vocabulary). 새 분석 항목이 추가되면 그 함수만 확장하면 된다.
  * -----------------------------------------------------------------------
  */
 
@@ -123,9 +123,9 @@ const HistoryView = (() => {
   }
 
   /**
-   * Analysis 영역 렌더. CEFR/Topic/Feedback은 실제 값을 표시하고,
-   * Grammar/Vocabulary/Conversation Type은 향후 확장을 위한 Coming Soon
-   * 자리를 함께 보여준다. analysis가 null이면 "아직 분석하지 않음" 안내만 표시한다.
+   * Analysis 영역 렌더. 실제 필드 마크업은 Home과 공유하는
+   * Utils.renderAnalysisDetails()에 위임하고, 이 함수는 "분석 없음" 상태와
+   * 컨테이너만 담당한다.
    * @param {JournalAnalysis|null} analysis
    * @returns {string} HTML 문자열
    */
@@ -137,20 +137,7 @@ const HistoryView = (() => {
         </div>`;
     }
 
-    return `
-      <div class="analysis-section">
-        <div class="analysis-section__row">
-          <span class="badge badge--cefr">${Utils.escapeHtml(analysis.cefr)}</span>
-          <span class="analysis-topic">${Utils.escapeHtml(analysis.topic)}</span>
-        </div>
-        <p class="analysis-feedback">${Utils.escapeHtml(analysis.feedback)}</p>
-        <div class="analysis-section__extra">
-          <span class="badge badge--soon">Grammar · Coming Soon</span>
-          <span class="badge badge--soon">Vocabulary · Coming Soon</span>
-          <span class="badge badge--soon">Conversation Type · Coming Soon</span>
-        </div>
-        <p class="analysis-meta">${analysis.provider} · ${analysis.model} · v${analysis.version}</p>
-      </div>`;
+    return `<div class="analysis-section">${Utils.renderAnalysisDetails(analysis)}</div>`;
   }
 
   /** 날짜 클릭 시 상세 표시 (이벤트 위임) */

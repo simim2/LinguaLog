@@ -480,9 +480,35 @@ ul { list-style: none; padding: 0; margin: 0; }
 .analysis-section__row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .analysis-topic { font-size: 14px; font-weight: 600; color: var(--color-text); }
 .analysis-feedback { font-size: 13.5px; line-height: 1.7; color: var(--color-text-muted); margin-bottom: 12px; }
-.analysis-section__extra { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
-.analysis-section__extra .badge--soon { font-size: 10.5px; padding: 3px 9px; }
-.analysis-meta { font-size: 11px; color: var(--color-text-faint); font-family: var(--font-mono); }
+.analysis-meta { font-size: 11px; color: var(--color-text-faint); font-family: var(--font-mono); margin-top: 4px; }
+.analysis-outdated-notice { font-size: 11.5px; color: var(--color-warning); margin: 4px 0 0; }
+
+/* Conversation Type / Keywords / Grammar / Vocabulary 서브섹션 (Phase 3.0) */
+.analysis-subsection { margin-bottom: 14px; }
+.analysis-subsection__label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+.analysis-subsection__body { font-size: 13px; color: var(--color-text-muted); line-height: 1.6; }
+.analysis-subsection__body strong { color: var(--color-text); }
+
+.chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.badge--type { background: var(--color-accent-soft); color: var(--color-accent); font-size: 11px; padding: 4px 10px; }
+.chip {
+  display: inline-flex; align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  font-family: var(--font-mono);
+}
 
 /* 버튼 내 로딩 스피너 */
 .btn-spinner {

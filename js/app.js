@@ -272,9 +272,7 @@ const App = (() => {
       card.hidden = true;
       return;
     }
-    Utils.qs('#analysis-cefr').textContent = analysis.cefr;
-    Utils.qs('#analysis-topic').textContent = analysis.topic;
-    Utils.qs('#analysis-feedback').textContent = analysis.feedback;
+    Utils.qs('#analysis-result-body').innerHTML = Utils.renderAnalysisDetails(analysis);
     card.hidden = false;
   }
 

@@ -59,9 +59,13 @@ const CONFIG = Object.freeze({
     // TODO: openai, selfHosted 등을 추가할 때 동일한 형태(label/endpoint/models/defaultModel)로 정의
   }),
 
-  ANALYSIS_VERSION: '1.0',    // JournalEntry.analysis.version 기본값. 분석 로직이
+  ANALYSIS_VERSION: '1.1',    // JournalEntry.analysis.version 기본값. 분석 로직이
                               // 바뀌면 이 값을 올리고, 재분석 필요 여부는
                               // 저장된 entry.analysis.version과 비교해 판단합니다.
+                              // (1.0: cefr/topic/feedback → 1.1: +conversationTypes/keywords/grammar/vocabulary)
+  PROMPT_VERSION: '1.1',     // 프롬프트 문구 버전. 스키마(ANALYSIS_VERSION)는 그대로 두고
+                              // 프롬프트 문구만 다듬을 때는 이 값만 올린다. 지금은 스키마
+                              // 개정과 함께 프롬프트도 새로 썼으므로 두 값이 같다.
   MAX_TEXT_LENGTH: 3000,      // 분석 요청 시 허용할 최대 글자 수
   API_TIMEOUT: 30000,         // 분석 API 타임아웃 (ms)
 

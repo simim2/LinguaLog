@@ -28,42 +28,46 @@
 /**
  * OpenAI/Gemini 등 AI 분석 결과 구조.
  *
- * version/provider/model/analyzedAt은 "이 분석 결과가 언제, 어떤 조합으로
- * 생성되었는지"를 기록하기 위한 메타데이터로, 향후 프롬프트가 개정되거나
- * Provider/Model이 바뀌었을 때 재분석(Re-analyze) 필요 여부를 판단하는
- * 근거로 사용한다 (예: 저장된 version이 CONFIG.ANALYSIS_VERSION보다 낮으면
- * "다시 분석하기"를 제안하는 식).
+ * version/promptVersion/provider/model/analyzedAt은 "이 분석 결과가 언제,
+ * 어떤 프롬프트·모델 조합으로 생성되었는지"를 기록하는 메타데이터다.
+ * version은 analysis 스키마(어떤 필드가 존재하는지) 버전이고,
+ * promptVersion은 같은 스키마 안에서 프롬프트 문구가 개정된 시점을 구분한다.
+ * 예: 스키마는 그대로인데 프롬프트 문구만 다듬은 경우 version은 유지하고
+ * promptVersion만 올린다. 향후 재분석(Re-analyze) 필요 여부는 이 두 값을
+ * CONFIG.ANALYSIS_VERSION / CONFIG.PROMPT_VERSION과 비교해 판단한다.
  *
- * Phase 2.0(MVP)에서는 cefr / topic / feedback 세 항목만 실제로 채워진다.
- * emotions, grammar, conversationTypes, keywords, reviewSentences,
- * recommendedExpressions 등은 향후 버전에서 추가될 필드로, 아직 분석기가
- * 채우지 않으므로 이 typedef에도 포함하지 않았다 (JSON_SCHEMA와 항상 1:1 대응).
+ * v1.0: cefr / topic / feedback
+ * v1.1(현재): + conversationTypes / keywords / grammar / vocabulary
+ * v1.0으로 저장된 기존 데이터는 새 필드가 없을 수 있으므로, 화면에서는
+ * 항상 optional하게(값이 없으면 표시 생략) 다뤄야 한다.
  *
  * @typedef {Object} JournalAnalysis
- * @property {string} version    - 분석 로직 버전 (CONFIG.ANALYSIS_VERSION 참조)
- * @property {string} provider   - 분석에 사용된 AI Provider (예: "gemini")
- * @property {string} model      - 분석에 사용된 모델명 (예: "gemini-2.5-flash")
- * @property {string} cefr       - CEFR 레벨 (예: "B1")
- * @property {string} topic      - 일기의 주요 주제 한 줄 (예: "Weekend trip")
- * @property {string} feedback   - AI가 제공하는 2~3줄 피드백
- * @property {string} analyzedAt - 분석이 완료된 시각 (ISO datetime)
+ * @property {string} version         - 분석 스키마 버전 (CONFIG.ANALYSIS_VERSION 참조)
+ * @property {string} promptVersion   - 프롬프트 문구 버전 (CONFIG.PROMPT_VERSION 참조)
+ * @property {string} provider        - 분석에 사용된 AI Provider (예: "gemini")
+ * @property {string} model           - 분석에 사용된 모델명 (예: "gemini-2.5-flash")
+ * @property {string} cefr            - CEFR 레벨 (예: "B1")
+ * @property {string} topic           - 일기의 주요 주제 한 줄 (예: "Weekend trip")
+ * @property {string} feedback        - AI가 제공하는 2~3줄 피드백
+ * @property {string[]} [conversationTypes] - 대화/글 유형 (복수 선택, CONVERSATION_TYPES 중에서)
+ * @property {string[]} [keywords]    - 핵심 키워드 5~10개 (소문자로 정규화됨)
+ * @property {GrammarAnalysis} [grammar]       - 문법 수준 요약
+ * @property {VocabularyAnalysis} [vocabulary] - 어휘 수준 요약
+ * @property {string} analyzedAt      - 분석이 완료된 시각 (ISO datetime)
  */
 
 /**
- * 문법 분석 세부 구조. 현재는 placeholder이며, 향후 실제 분석 결과가
- * 이 형태로 채워질 예정입니다. 필드 자체는 자유 형식(Object)에 가깝게
- * 열어두되, 대표적으로 예상되는 키를 문서화합니다.
+ * 문법 수준 요약 (Phase 3.0). 상세 첨삭이 아니라 전반적인 수준 파악용.
  * @typedef {Object} GrammarAnalysis
- * @property {Array<{original: string, corrected: string, explanation: string}>} [errors]
- *           - 발견된 문법 오류와 교정 제안 목록
- * @property {number} [accuracyScore]      - 문법 정확도 점수 (0~100, 예상)
+ * @property {number} score   - 문법 정확도 점수, 1~5점 (5점 만점)
+ * @property {string} summary - 한 줄 요약 (예: "Mostly correct grammar with occasional article mistakes.")
  */
 
 /**
- * 대화/문체 유형 분석 구조. 예: 일기가 서술형인지, 대화형인지 등.
- * @typedef {Object} ConversationAnalysis
- * @property {string} [primaryType]        - 주요 유형 (예: "narrative", "dialogue")
- * @property {Object.<string, number>} [distribution] - 유형별 비율
+ * 어휘 수준 요약 (Phase 3.0).
+ * @typedef {Object} VocabularyAnalysis
+ * @property {string} level   - 어휘 수준 (예: "Beginner" | "Intermediate" | "Advanced")
+ * @property {string} summary - 한 줄 요약 (예: "Good range of daily vocabulary.")
  */
 
 /**

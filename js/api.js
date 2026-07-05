@@ -10,8 +10,8 @@
  *   UI → analyzeJournal(entry)
  *          → AISettingsStorage에서 provider/model/apiKey 조회
  *          → AIProviders[provider].call(...)  (현재는 gemini만 등록)
- *          → validateResponse(rawJsonText)
- *          → parseAnalysis(validated, meta)  → JournalAnalysis 반환
+ *          → validateResponse(rawJsonText)     (sanitize 포함)
+ *          → parseAnalysis(validated, meta)    → JournalAnalysis 반환
  *
  * 향후 OpenAI, 자체 서버 API로 바꾸더라도:
  *   1) AIProviders에 새 provider 함수를 추가하고
@@ -103,6 +103,9 @@ const AIProviders = (() => {
 })();
 
 const AnalysisAPI = (() => {
+  const VALID_CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+  const VALID_VOCAB_LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
+
   /**
    * 일기 본문을 AI로 분석 요청한다.
    * @param {JournalEntry} entry - 분석할 일기 (entry.content 사용)
@@ -134,48 +137,132 @@ const AnalysisAPI = (() => {
   }
 
   /**
-   * AI 응답 원본 텍스트가 JSON_SCHEMA와 일치하는지 검증한다.
-   * @param {string} rawText - provider.call()이 반환한 원본 텍스트 (JSON 문자열 기대)
-   * @returns {{ cefr: string, topic: string, feedback: string }}
+   * Gemini 등 모델이 Markdown 코드펜스나 앞뒤 잡담을 섞어 보내는 경우에
+   * 대비해, JSON.parse 전에 텍스트를 안전하게 정리한다.
+   *   1) 앞뒤 공백 제거
+   *   2) 코드펜스(```json ... ``` / ``` ... ```) 제거
+   *   3) 그래도 파싱이 안 되면 첫 "{"부터 마지막 "}"까지만 잘라 재시도
+   * @param {string} rawText
+   * @returns {Object} 파싱된 JSON 객체
+   * @throws {AnalysisError} 끝까지 파싱에 실패하면 INVALID_RESPONSE
    */
-  function validateResponse(rawText) {
-    let parsed;
+  function sanitizeJsonText(rawText) {
+    const stripFences = (s) => s.trim().replace(/^```json\s*|^```\s*|```$/g, '').trim();
+
+    const attempt1 = stripFences(rawText);
     try {
-      // 모델이 실수로 코드펜스(```json ... ```)를 붙였을 경우를 대비한 방어적 처리
-      const cleaned = rawText.trim().replace(/^```json\s*|^```\s*|```$/g, '');
-      parsed = JSON.parse(cleaned);
+      return JSON.parse(attempt1);
     } catch (err) {
+      // 폴백: 텍스트 어딘가에 JSON 객체가 섞여 있을 경우 { ... } 구간만 추출
+      const start = attempt1.indexOf('{');
+      const end = attempt1.lastIndexOf('}');
+      if (start !== -1 && end !== -1 && end > start) {
+        try {
+          return JSON.parse(attempt1.slice(start, end + 1));
+        } catch (err2) {
+          // 아래에서 공통 에러 처리
+        }
+      }
       throw new AnalysisError('INVALID_RESPONSE', 'AI 응답이 올바른 JSON 형식이 아닙니다.');
     }
+  }
 
-    const requiredKeys = Object.keys(JSON_SCHEMA);
-    const missing = requiredKeys.filter((key) => typeof parsed[key] !== 'string');
-    if (missing.length > 0) {
-      throw new AnalysisError('INVALID_RESPONSE', `AI 응답에 필요한 항목이 없습니다: ${missing.join(', ')}`);
+  /**
+   * AI 응답 원본 텍스트가 JSON_SCHEMA(v1.1)와 일치하는지 검증하고,
+   * keywords는 소문자로 정규화한 뒤 반환한다.
+   * @param {string} rawText - provider.call()이 반환한 원본 텍스트
+   * @returns {{
+   *   cefr: string, topic: string, feedback: string,
+   *   conversationTypes: string[], keywords: string[],
+   *   grammar: {score: number, summary: string},
+   *   vocabulary: {level: string, summary: string}
+   * }}
+   */
+  function validateResponse(rawText) {
+    const parsed = sanitizeJsonText(rawText);
+    const fail = (msg) => { throw new AnalysisError('INVALID_RESPONSE', msg); };
+
+    // --- 기본 필드 (v1.0) ---
+    if (typeof parsed.cefr !== 'string' || !VALID_CEFR_LEVELS.includes(parsed.cefr)) {
+      fail(`CEFR 값이 올바르지 않습니다: ${parsed.cefr}`);
+    }
+    if (typeof parsed.topic !== 'string' || !parsed.topic.trim()) {
+      fail('topic 항목이 비어있습니다.');
+    }
+    if (typeof parsed.feedback !== 'string' || !parsed.feedback.trim()) {
+      fail('feedback 항목이 비어있습니다.');
     }
 
-    const validCefrLevels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
-    if (!validCefrLevels.includes(parsed.cefr)) {
-      throw new AnalysisError('INVALID_RESPONSE', `CEFR 값이 올바르지 않습니다: ${parsed.cefr}`);
+    // --- 확장 필드 (v1.1) ---
+    if (!Array.isArray(parsed.conversationTypes) || parsed.conversationTypes.length === 0) {
+      fail('conversationTypes 항목이 비어있습니다.');
+    }
+    const conversationTypes = parsed.conversationTypes.filter((t) => CONVERSATION_TYPES.includes(t));
+    if (conversationTypes.length === 0) {
+      fail(`conversationTypes 값이 허용된 목록에 없습니다: ${JSON.stringify(parsed.conversationTypes)}`);
     }
 
-    return { cefr: parsed.cefr, topic: parsed.topic, feedback: parsed.feedback };
+    if (!Array.isArray(parsed.keywords) || parsed.keywords.length === 0) {
+      fail('keywords 항목이 비어있습니다.');
+    }
+    // 향후 Word Cloud / 통계 정확도를 위해 소문자 + 트림 + 중복 제거로 정규화
+    const keywords = [...new Set(
+      parsed.keywords
+        .filter((k) => typeof k === 'string' && k.trim())
+        .map((k) => k.trim().toLowerCase())
+    )];
+    if (keywords.length === 0) {
+      fail('keywords 항목에 유효한 값이 없습니다.');
+    }
+
+    const grammar = parsed.grammar;
+    if (
+      !grammar || typeof grammar !== 'object' ||
+      !Number.isFinite(grammar.score) || grammar.score < 1 || grammar.score > 5 ||
+      typeof grammar.summary !== 'string' || !grammar.summary.trim()
+    ) {
+      fail('grammar 항목이 올바르지 않습니다.');
+    }
+
+    const vocabulary = parsed.vocabulary;
+    if (
+      !vocabulary || typeof vocabulary !== 'object' ||
+      !VALID_VOCAB_LEVELS.includes(vocabulary.level) ||
+      typeof vocabulary.summary !== 'string' || !vocabulary.summary.trim()
+    ) {
+      fail('vocabulary 항목이 올바르지 않습니다.');
+    }
+
+    return {
+      cefr: parsed.cefr,
+      topic: parsed.topic.trim(),
+      feedback: parsed.feedback.trim(),
+      conversationTypes,
+      keywords,
+      grammar: { score: Math.round(grammar.score), summary: grammar.summary.trim() },
+      vocabulary: { level: vocabulary.level, summary: vocabulary.summary.trim() },
+    };
   }
 
   /**
    * 검증된 응답 + 메타 정보를 최종 JournalAnalysis 객체로 변환한다.
-   * @param {{ cefr: string, topic: string, feedback: string }} validated
+   * @param {ReturnType<typeof validateResponse>} validated
    * @param {{ provider: string, model: string }} meta
    * @returns {JournalAnalysis}
    */
   function parseAnalysis(validated, meta) {
     return {
       version: CONFIG.ANALYSIS_VERSION,
+      promptVersion: CONFIG.PROMPT_VERSION,
       provider: meta.provider,
       model: meta.model,
       cefr: validated.cefr,
       topic: validated.topic,
       feedback: validated.feedback,
+      conversationTypes: validated.conversationTypes,
+      keywords: validated.keywords,
+      grammar: validated.grammar,
+      vocabulary: validated.vocabulary,
       analyzedAt: new Date().toISOString(),
     };
   }

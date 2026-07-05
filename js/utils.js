@@ -134,6 +134,78 @@ const Utils = (() => {
   }
 
   /**
+   * AI 분석 결과(JournalAnalysis)를 HTML로 렌더링하는 공용 함수.
+   * Home(#analysis-result-card)과 History(상세 패널)가 동일한 마크업을
+   * 공유하도록 이 한 곳에서만 관리한다. 새 분석 항목이 추가되면 이 함수만
+   * 확장하면 두 화면에 동시에 반영된다.
+   *
+   * v1.0으로 저장된 구버전 데이터는 conversationTypes/keywords/grammar/
+   * vocabulary가 없을 수 있으므로, 각 블록은 값이 있을 때만 렌더링한다.
+   *
+   * @param {JournalAnalysis} analysis
+   * @returns {string} `.analysis-section` 내부에 들어갈 HTML 문자열
+   */
+  function renderAnalysisDetails(analysis) {
+    const parts = [];
+
+    parts.push(`
+      <div class="analysis-section__row">
+        <span class="badge badge--cefr">${escapeHtml(analysis.cefr)}</span>
+        <span class="analysis-topic">${escapeHtml(analysis.topic)}</span>
+      </div>
+      <p class="analysis-feedback">${escapeHtml(analysis.feedback)}</p>
+    `);
+
+    if (Array.isArray(analysis.conversationTypes) && analysis.conversationTypes.length > 0) {
+      parts.push(`
+        <div class="analysis-subsection">
+          <span class="analysis-subsection__label">Conversation Type</span>
+          <div class="chip-row">
+            ${analysis.conversationTypes.map((t) => `<span class="badge badge--type">${escapeHtml(t)}</span>`).join('')}
+          </div>
+        </div>
+      `);
+    }
+
+    if (Array.isArray(analysis.keywords) && analysis.keywords.length > 0) {
+      parts.push(`
+        <div class="analysis-subsection">
+          <span class="analysis-subsection__label">Keywords</span>
+          <div class="chip-row">
+            ${analysis.keywords.map((k) => `<span class="chip">${escapeHtml(k)}</span>`).join('')}
+          </div>
+        </div>
+      `);
+    }
+
+    if (analysis.grammar) {
+      parts.push(`
+        <div class="analysis-subsection">
+          <span class="analysis-subsection__label">Grammar</span>
+          <p class="analysis-subsection__body"><strong>${analysis.grammar.score}/5</strong> · ${escapeHtml(analysis.grammar.summary)}</p>
+        </div>
+      `);
+    }
+
+    if (analysis.vocabulary) {
+      parts.push(`
+        <div class="analysis-subsection">
+          <span class="analysis-subsection__label">Vocabulary</span>
+          <p class="analysis-subsection__body"><strong>${escapeHtml(analysis.vocabulary.level)}</strong> · ${escapeHtml(analysis.vocabulary.summary)}</p>
+        </div>
+      `);
+    }
+
+    if (analysis.version && analysis.version !== CONFIG.ANALYSIS_VERSION) {
+      parts.push(`<p class="analysis-outdated-notice">이 결과는 이전 버전(v${analysis.version})으로 분석되었습니다.</p>`);
+    }
+
+    parts.push(`<p class="analysis-meta">${analysis.provider} · ${analysis.model} · v${analysis.version}${analysis.promptVersion ? ` · prompt v${analysis.promptVersion}` : ''}</p>`);
+
+    return parts.join('');
+  }
+
+  /**
    * 삭제 등 위험한 동작 전에 표시하는 확인 모달을 여는 헬퍼.
    * confirmModal 엘리먼트가 index.html에 이미 존재한다고 가정합니다.
    * onConfirm: 사용자가 "삭제"를 눌렀을 때 실행할 콜백
@@ -178,6 +250,7 @@ const Utils = (() => {
     generateId,
     clamp,
     showToast,
+    renderAnalysisDetails,
     openConfirmModal,
   };
 })();
