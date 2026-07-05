@@ -1,5 +1,19 @@
 # CLAUDE.md
 
+# IMPORTANT
+
+Before implementing any feature, you MUST read:
+
+1. docs/ProjectVision.md
+2. docs/Architecture.md
+3. docs/DevelopmentGuide.md
+4. docs/Roadmap.md
+
+If a Phase document exists, read it before making any code changes.
+
+Do not implement features without understanding these documents.
+
+
 # LinguaLog AI Development Instructions
 
 > This document defines the development rules for AI assistants working on the LinguaLog project.
